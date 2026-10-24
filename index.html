@@ -1,0 +1,634 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101410">
+  <title>Animal Classification System</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px 14px;
+      background: #101410;
+      color: #f3f7f0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1b241d;
+      border: 1px solid #526d48;
+      border-radius: 18px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+    }
+
+    h1 {
+      margin: 5px 0 18px;
+      color: #b7f36b;
+      font-size: 25px;
+    }
+
+    .preview-container {
+      width: 100%;
+      min-height: 220px;
+      margin: 18px 0;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #080b08;
+      border: 1px solid #39483a;
+      border-radius: 12px;
+    }
+
+    video,
+    #preview {
+      display: block;
+      width: 100%;
+      max-height: 380px;
+      object-fit: contain;
+      background: #080b08;
+    }
+
+    video[hidden],
+    img[hidden],
+    button[hidden] {
+      display: none !important;
+    }
+
+    #placeholder {
+      padding: 25px 12px;
+      color: #a9b9a5;
+      font-size: 14px;
+    }
+
+    #placeholder .camera-icon {
+      margin-bottom: 10px;
+      font-size: 45px;
+    }
+
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      margin: 9px 0;
+      border: none;
+      border-radius: 10px;
+      background: #b7f36b;
+      color: #15200f;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    button:hover:not(:disabled) {
+      box-shadow: 0 0 12px rgba(183, 243, 107, 0.22);
+    }
+
+    button.secondary {
+      background: #354535;
+      color: #f3f7f0;
+      border: 1px solid #61745b;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #status {
+      min-height: 36px;
+      margin: 15px 0;
+      color: #d4e7c9;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+
+    #results {
+      margin-top: 20px;
+      text-align: left;
+    }
+
+    #results[hidden] {
+      display: none !important;
+    }
+
+    .result {
+      margin: 12px 0;
+      padding: 14px;
+      background: #29352a;
+      border: 1px solid #40533e;
+      border-radius: 10px;
+    }
+
+    .result-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .animal-name {
+      color: #f3f7f0;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .score {
+      color: #b7f36b;
+      font-weight: bold;
+    }
+
+    progress {
+      display: block;
+      width: 100%;
+      height: 12px;
+      accent-color: #b7f36b;
+    }
+
+    #prediction {
+      margin: 20px 0 5px;
+      padding: 14px;
+      background: #202d20;
+      border: 1px solid #526d48;
+      border-radius: 12px;
+      color: #b7f36b;
+      text-align: center;
+      font-size: 21px;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 360px) {
+      body {
+        padding: 16px 10px;
+      }
+
+      .card {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .preview-container {
+        min-height: 190px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      button {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+
+    <h1>ANIMAL CLASSIFIER</h1>
+
+    <div class="preview-container">
+      <div id="placeholder">
+        <div class="camera-icon">📷</div>
+        <div>Your captured photo will appear here.</div>
+      </div>
+
+      <video id="camera" autoplay playsinline muted hidden></video>
+
+      <img
+        id="preview"
+        alt="Captured animal photo"
+        hidden
+      >
+    </div>
+
+    <button id="startButton" type="button">
+      Take Picture
+    </button>
+
+    <button
+      id="captureButton"
+      type="button"
+      class="secondary"
+      hidden
+    >
+      Capture Photo
+    </button>
+
+    <button
+      id="classifyButton"
+      type="button"
+      disabled
+    >
+      Classify Animal
+    </button>
+
+    <p id="status" role="status" aria-live="polite">
+      Loading your animal classification model...
+    </p>
+
+    <section id="results" hidden>
+      <div class="result">
+        <div class="result-heading">
+          <span class="animal-name">🐯 Tiger</span>
+          <span class="score" id="tigerScore">0.0%</span>
+        </div>
+        <progress id="tigerBar" max="100" value="0"></progress>
+      </div>
+
+      <div class="result">
+        <div class="result-heading">
+          <span class="animal-name">🦈 Shark</span>
+          <span class="score" id="sharkScore">0.0%</span>
+        </div>
+        <progress id="sharkBar" max="100" value="0"></progress>
+      </div>
+
+      <div class="result">
+        <div class="result-heading">
+          <span class="animal-name">🦅 Eagle</span>
+          <span class="score" id="eagleScore">0.0%</span>
+        </div>
+        <progress id="eagleBar" max="100" value="0"></progress>
+      </div>
+
+      <h2 id="prediction"></h2>
+    </section>
+
+    <canvas id="photoCanvas" hidden></canvas>
+
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
+
+  <script>
+    "use strict";
+
+    const MODEL_URL =
+      "https://teachablemachine.withgoogle.com/models/xWt4riPxb5/";
+
+    const camera = document.getElementById("camera");
+    const preview = document.getElementById("preview");
+    const canvas = document.getElementById("photoCanvas");
+    const placeholder = document.getElementById("placeholder");
+
+    const startButton = document.getElementById("startButton");
+    const captureButton = document.getElementById("captureButton");
+    const classifyButton = document.getElementById("classifyButton");
+
+    const statusText = document.getElementById("status");
+    const resultsSection = document.getElementById("results");
+
+    let model = null;
+    let cameraStream = null;
+    let photoReady = false;
+    let isClassifying = false;
+    let isOpeningCamera = false;
+
+    async function loadModel() {
+      try {
+        statusText.textContent = "Loading AI model...";
+
+        model = await tmImage.load(
+          MODEL_URL + "model.json",
+          MODEL_URL + "metadata.json"
+        );
+
+        statusText.textContent =
+          "Model ready! Tap Take Picture to begin.";
+
+        updateClassifyButton();
+
+      } catch (error) {
+        console.error("Model loading error:", error);
+
+        statusText.textContent =
+          "Unable to load the model. Check your internet connection and model URL.";
+
+        updateClassifyButton();
+      }
+    }
+
+    function stopCamera() {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(function(track) {
+          track.stop();
+        });
+
+        cameraStream = null;
+      }
+
+      camera.srcObject = null;
+    }
+
+    function updateClassifyButton() {
+      classifyButton.disabled =
+        !model || !photoReady || isClassifying;
+    }
+
+    async function openCamera() {
+      if (isOpeningCamera || cameraStream) {
+        return;
+      }
+
+      isOpeningCamera = true;
+
+      photoReady = false;
+      classifyButton.disabled = true;
+      captureButton.disabled = false;
+
+      startButton.disabled = true;
+      startButton.hidden = true;
+
+      resultsSection.hidden = true;
+      preview.hidden = true;
+      placeholder.hidden = true;
+      camera.hidden = false;
+      captureButton.hidden = true;
+
+      statusText.textContent =
+        "Opening camera. Please allow camera access if requested.";
+
+      try {
+        if (
+          !navigator.mediaDevices ||
+          !navigator.mediaDevices.getUserMedia
+        ) {
+          throw new Error(
+            "Camera access is unavailable. Open the HTTPS website in a supported browser."
+          );
+        }
+
+        cameraStream =
+          await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: "environment" }
+            },
+            audio: false
+          });
+
+        camera.srcObject = cameraStream;
+
+        await new Promise(function(resolve, reject) {
+          if (
+            camera.readyState >= 2 &&
+            camera.videoWidth > 0
+          ) {
+            resolve();
+            return;
+          }
+
+          camera.onloadedmetadata = function() {
+            camera.play().then(resolve).catch(reject);
+          };
+        });
+
+        await camera.play();
+
+        // Do not show a "Camera Open" button.
+        startButton.hidden = true;
+        captureButton.hidden = false;
+        captureButton.disabled = false;
+
+        statusText.textContent =
+          "Position the animal inside the camera view, then tap Capture Photo.";
+
+      } catch (error) {
+        console.error("Camera error:", error);
+
+        stopCamera();
+
+        camera.hidden = true;
+        placeholder.hidden = false;
+
+        placeholder.innerHTML =
+          '<div class="camera-icon">📷</div>' +
+          '<div>Camera could not be opened.</div>';
+
+        captureButton.hidden = true;
+        startButton.textContent = "Try Camera Again";
+        startButton.hidden = false;
+
+        statusText.textContent =
+          "Camera error: " +
+          (error.message || "Permission denied.");
+
+      } finally {
+        isOpeningCamera = false;
+        startButton.disabled = false;
+      }
+    }
+
+    startButton.addEventListener("click", function() {
+      openCamera();
+    });
+
+    captureButton.addEventListener("click", function() {
+      if (
+        !cameraStream ||
+        !camera.videoWidth ||
+        !camera.videoHeight
+      ) {
+        statusText.textContent =
+          "Camera is not ready yet. Please wait a moment.";
+        return;
+      }
+
+      captureButton.disabled = true;
+
+      try {
+        const width = camera.videoWidth;
+        const height = camera.videoHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const context = canvas.getContext("2d");
+
+        if (!context) {
+          throw new Error(
+            "Unable to prepare the captured photo."
+          );
+        }
+
+        context.drawImage(camera, 0, 0, width, height);
+
+        const photoData =
+          canvas.toDataURL("image/jpeg", 0.92);
+
+        preview.onload = function() {
+          preview.onload = null;
+          preview.onerror = null;
+
+          preview.hidden = false;
+          camera.hidden = true;
+
+          stopCamera();
+
+          captureButton.hidden = true;
+          captureButton.disabled = false;
+
+          startButton.textContent = "Take Another Picture";
+          startButton.hidden = false;
+
+          photoReady = true;
+          resultsSection.hidden = true;
+
+          statusText.textContent = model
+            ? "Photo captured! Tap Classify Animal."
+            : "Photo captured. Waiting for the AI model to load.";
+
+          updateClassifyButton();
+        };
+
+        preview.onerror = function() {
+          preview.onload = null;
+          preview.onerror = null;
+
+          photoReady = false;
+          captureButton.disabled = false;
+
+          startButton.hidden = false;
+          startButton.textContent = "Try Camera Again";
+
+          statusText.textContent =
+            "The photo preview could not be displayed. Please try again.";
+
+          updateClassifyButton();
+        };
+
+        preview.src = photoData;
+
+      } catch (error) {
+        console.error("Capture error:", error);
+
+        captureButton.disabled = false;
+
+        statusText.textContent =
+          "Could not capture the photo. Please try again.";
+      }
+    });
+
+    classifyButton.addEventListener("click", async function() {
+      if (!model) {
+        statusText.textContent =
+          "The AI model is not ready yet. Please wait.";
+        return;
+      }
+
+      if (
+        !photoReady ||
+        !preview.src ||
+        !preview.complete ||
+        preview.naturalWidth === 0
+      ) {
+        statusText.textContent =
+          "Please take a photo and wait for its preview first.";
+        return;
+      }
+
+      if (isClassifying) {
+        return;
+      }
+
+      isClassifying = true;
+      updateClassifyButton();
+
+      statusText.textContent =
+        "Analyzing the captured photo...";
+
+      try {
+        const predictions = await model.predict(preview);
+
+        const scores = {
+          tiger: 0,
+          shark: 0,
+          eagle: 0
+        };
+
+        predictions.forEach(function(item) {
+          const label = item.className.trim().toLowerCase();
+
+          if (
+            Object.prototype.hasOwnProperty.call(scores, label)
+          ) {
+            scores[label] = item.probability * 100;
+          }
+        });
+
+        document.getElementById("tigerScore").textContent =
+          scores.tiger.toFixed(1) + "%";
+
+        document.getElementById("sharkScore").textContent =
+          scores.shark.toFixed(1) + "%";
+
+        document.getElementById("eagleScore").textContent =
+          scores.eagle.toFixed(1) + "%";
+
+        document.getElementById("tigerBar").value =
+          scores.tiger;
+
+        document.getElementById("sharkBar").value =
+          scores.shark;
+
+        document.getElementById("eagleBar").value =
+          scores.eagle;
+
+        const animals = [
+          { name: "Tiger", score: scores.tiger },
+          { name: "Shark", score: scores.shark },
+          { name: "Eagle", score: scores.eagle }
+        ];
+
+        animals.sort(function(a, b) {
+          return b.score - a.score;
+        });
+
+        document.getElementById("prediction").textContent =
+          "Prediction: " + animals[0].name;
+
+        resultsSection.hidden = false;
+
+        statusText.textContent =
+          "Classification complete! Tap Take Another Picture to try again.";
+
+      } catch (error) {
+        console.error("Classification error:", error);
+
+        statusText.textContent =
+          "Classification failed. Please try again with a clear photo.";
+
+      } finally {
+        isClassifying = false;
+        updateClassifyButton();
+      }
+    });
+
+    window.addEventListener("pagehide", stopCamera);
+
+    loadModel();
+  </script>
+</body>
+</html>
